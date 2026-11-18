@@ -1,8 +1,12 @@
+[![make.fun · gta6-01](https://make.fun/badge/gta6-01.svg)](https://make.fun/bounty/gta6-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-01)
+[![rank](https://make.fun/badge/gta6-01/AlexBeracun/makefun-gta6-01/rank.svg)](https://make.fun/bounty/gta6-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=gta6-01)
+[![reward](https://make.fun/badge/gta6-01/AlexBeracun/makefun-gta6-01/reward.svg)](https://make.fun/bounty/gta6-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-01)
+
 # SOLMAR HEAT
 
 An original open-world crime game for the make.fun **gta6-01** bounty ("Make GTA 6"),
 built in the spirit of GTA 6 with its own city, characters, vehicles, names and story —
-nothing from Rockstar Games.
+nothing from Rockstar Games. Bounty page: https://make.fun/bounty/gta6-01
 
 You are **Mara Solis**, a driver for hire in **Solmar Bay**: a sun-soaked coastal city
 with a beach, a downtown of glass towers, a marina, docks and suburbs. Drive and walk
