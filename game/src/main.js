@@ -161,10 +161,19 @@ function runGame() {
     }
 
     if (screen === SCREEN_PLAY) {
+      // Build the control once per frame: buildControl() reads edge-triggered
+      // keys (E / Space) that stay true until endFrame(), so rebuilding it
+      // per sim step toggled enter/exit twice in one frame whenever the slow
+      // 3D renderer let a frame contain 2+ fixed steps (E entered the car,
+      // then immediately exited it again). Clear the edge fields after the
+      // first step so each press fires exactly once per frame.
+      const ctrl = buildControl();
       while (accumulator >= STEP) {
-        const events = world.step(STEP, buildControl());
+        const events = world.step(STEP, ctrl);
         handleEvents(events);
         accumulator -= STEP;
+        ctrl.enter = false;
+        ctrl.punch = false;
         if (screen !== SCREEN_PLAY) break;
       }
       // Auto-start the next story mission once the player is settled.
