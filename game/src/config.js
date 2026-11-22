@@ -85,7 +85,7 @@ export const MISSIONS = [
   {
     id: 'm5', title: 'Dockside Deal', giver: 'Rosa',
     brief: "Three crates at the south docks, Rosa's cut inside. Grab them all — the dock crew will not like it.",
-    pay: 1200,
+    pay: 1200, heatOnCollect: 2,
     steps: [
       { type: 'collect', x: 600, y: 2350, text: 'Collect crate 1 of 3 at the south docks', radius: 70 },
       { type: 'collect', x: 1050, y: 2400, text: 'Collect crate 2 of 3 at the south docks', radius: 70 },
@@ -101,6 +101,48 @@ export const MISSIONS = [
       { type: 'goto', x: 2250, y: 1150, text: 'Reach the Harbor Bank downtown', radius: 80 },
       { type: 'collect', x: 2250, y: 1150, text: 'Grab the cash inside (stand on the marker)', radius: 70 },
       { type: 'escape', stars: 3, text: 'Escape! Lose the 3-star wanted level and reach the safehouse', x: 3100, y: 2100 },
+    ],
+  },
+  {
+    id: 'm7', title: 'Rush Hour', giver: 'Dee',
+    brief: 'Three drops, one clock. Depot, marina, hotel — 90 seconds and the city pays on time.',
+    pay: 900, timeLimit: 90,
+    steps: [
+      { type: 'goto', x: 2250, y: 2420, text: 'Pick up the rush parcel at the courier depot', radius: 80 },
+      { type: 'goto', x: 2700, y: 2280, text: 'Drop 1 of 3 at the marina pier', radius: 80 },
+      { type: 'goto', x: 2900, y: 700, text: 'Drop 2 of 3 at the Grand Solmar hotel', radius: 80 },
+      { type: 'goto', x: 1330, y: 620, text: 'Drop 3 of 3 at the Palm Row deli before time runs out', radius: 80 },
+    ],
+  },
+  {
+    id: 'm8', title: 'Taxi King', giver: 'Tomas',
+    brief: 'Tomas is back — and he tips big. Two stops across town, no scratches on the paint.',
+    pay: 1000,
+    steps: [
+      { type: 'pickup', x: 420, y: 1150, text: 'Pick up Tomas at the beach bar (drive close and stop)', radius: 110 },
+      { type: 'goto', x: 2900, y: 700, text: 'Drop Tomas at the Grand Solmar hotel', radius: 90 },
+      { type: 'goto', x: 2250, y: 1150, text: 'Second stop: the Harbor Bank downtown', radius: 90 },
+    ],
+  },
+  {
+    id: 'm9', title: "Rosa's Revenge", giver: 'Rosa',
+    brief: 'The dock crew took Rosa\'s crates back. Take them back — all three — and run for the safehouse.',
+    pay: 2000, heatOnCollect: 2,
+    steps: [
+      { type: 'collect', x: 600, y: 2350, text: 'Take crate 1 of 3 at the south docks', radius: 70 },
+      { type: 'collect', x: 1500, y: 2350, text: 'Take crate 2 of 3 at the south docks', radius: 70 },
+      { type: 'collect', x: 2400, y: 2350, text: 'Take crate 3 of 3 at the south docks', radius: 70 },
+      { type: 'goto', x: 3100, y: 2100, text: 'Run the crates to the safehouse', radius: 90 },
+    ],
+  },
+  {
+    id: 'm10', title: 'King of Solmar', giver: 'Dee',
+    brief: 'The last job. Hit the Harbor Bank again, grab everything, and outrun a 4-star manhunt to the safehouse.',
+    pay: 8000,
+    steps: [
+      { type: 'goto', x: 2250, y: 1150, text: 'Reach the Harbor Bank downtown', radius: 80 },
+      { type: 'collect', x: 2250, y: 1150, text: 'Grab all the cash inside (stand on the marker)', radius: 70 },
+      { type: 'escape', stars: 4, text: 'Escape! Lose the 4-star wanted level and reach the safehouse', x: 3100, y: 2100 },
     ],
   },
 ];

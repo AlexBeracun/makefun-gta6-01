@@ -1,13 +1,14 @@
 // SOLMAR HEAT — a gta6-01 entry (Node 22, standard library only): an original open-world
 // crime game set in Solmar Bay. The game is this directory's game/ folder, plain static files
-// a desktop browser loads offline (game/index.html and its ES modules, no library and no
-// network request), and this program hands it in. It copies game/ and screenshots/ from
-// beside this file to /output and writes /output/dossier.json, the summary the judge reads,
-// with the vendored make.fun library. The game: drive and walk a sun-soaked coastal city,
-// steal cars, outrun the Solmar Bay Police under a 5-star wanted system, run 6 story
-// missions for Mara Solis, take taxi fares, and save your progress — with a HUD, a live
-// minimap, synthesised sound and a day/night cycle. Put your 3 or 4 PNG or JPEG screenshots
-// in screenshots/ (the first by name is the cover) and run it.
+// a desktop browser loads offline (game/index.html and its ES modules, plus three.js vendored
+// under game/vendor/three/ for the 3D world; no network request), and this program hands it
+// in. It copies game/ and screenshots/ from beside this file to /output and writes
+// /output/dossier.json, the summary the judge reads, with the vendored make.fun library.
+// The game: drive and walk a sun-soaked coastal city in 3D, steal cars, outrun the Solmar
+// Bay Police — interceptors, foot cops and the SBP helicopter — under a 5-star wanted
+// system, run 10 story missions for Mara Solis, take taxi fares, and save your progress —
+// with a HUD, a live minimap, synthesised sound and a day/night cycle. Put your 3 or 4 PNG
+// or JPEG screenshots in screenshots/ (the first by name is the cover) and run it.
 //
 // Serve it locally with `node serve.ts`, then open http://localhost:8080.
 // Outside the grader's container, MAKEFUN_OUTPUT_DIR stands in for /output:

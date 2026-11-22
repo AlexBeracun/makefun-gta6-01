@@ -2,7 +2,7 @@
 // steps, and the renderer paints what is there. Screens: title, play, missions, paused,
 // busted/wasted, and story complete. Autosaves after every mission.
 //
-// ?seed=N fixes the city. ?shot=title|chase|mission|night (with &seed=N) stages that
+// ?seed=N fixes the city. ?shot=chase|heli|mission|beach (with &seed=N) stages that
 // scene instead of running the loop, paints it twice and sets window.__shotReady.
 import { MISSIONS, SAVE_KEY, SEED, STEP } from './config.js';
 import { createWorld, EVENT_BUSTED, EVENT_MISSION_DONE, EVENT_MISSION_FAIL, EVENT_WASTED } from './world.js';
@@ -22,9 +22,10 @@ const seedParam = Number.parseInt(params.get('seed') ?? '', 10);
 const seed = Number.isInteger(seedParam) ? seedParam : SEED;
 
 const canvas = document.getElementById('game');
+const hudCanvas = document.getElementById('hud');
 const status = document.getElementById('status');
 const world = createWorld(seed);
-const renderer = createRenderer(canvas);
+const renderer = createRenderer(canvas, hudCanvas);
 const audio = createAudio();
 // A read handle for play-testing (the finalist review can inspect the live state).
 window.__world = world;

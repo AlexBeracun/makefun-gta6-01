@@ -1,16 +1,17 @@
-// The screenshot scenes behind ?shot=title|chase|mission|night. Each one plays the
+// The screenshot scenes behind ?shot=chase|heli|mission|beach. Each one plays the
 // real rules forward from a fresh world for a fixed number of steps, steered by a simple
 // autopilot (drive along the road grid toward the objective, walk toward the marker),
 // so the frame is what a real game looks like and the same seed always gives the same
-// frame. The night scene sets the clock to 21:30 for headlights and lit windows.
+// frame. The heli scene sets the clock to 21:30 for headlights and lit windows;
+// the chase scene is golden hour, when the sun is low and the towers glow.
 import { PLACES, STEP } from './config.js';
 import { SCREEN_PLAY, SCREEN_TITLE } from './render.js';
 
 const SAMPLE = STEP;
-const TITLE_SECONDS = 6;
 const CHASE_SECONDS = 26;
+const HELI_SECONDS = 22;
 const MISSION_SECONDS = 3;
-const NIGHT_SECONDS = 22;
+const BEACH_SECONDS = 20;
 
 /** Drive control steering toward a point 400 px ahead on the current road. */
 function driveControl(world) {
@@ -113,28 +114,29 @@ function putPlayerInCar(world, defId) {
 }
 
 /**
- * Set `world` to the named scene (title, chase, mission or night; any other name is
+ * Set `world` to the named scene (chase, heli, mission or beach; any other name is
  * title) and return the screen to draw over it and the save to show on the title.
  */
 export function stageShot(name, world) {
   world.reset();
   const st = world.state;
-  if (name !== 'chase' && name !== 'mission' && name !== 'night') {
-    for (let i = 0; i < TITLE_SECONDS / SAMPLE; i += 1) {
+  if (name !== 'chase' && name !== 'mission' && name !== 'heli' && name !== 'beach') {
+    for (let i = 0; i < 6 / SAMPLE; i += 1) {
       world.step(SAMPLE, { up: false, down: false, left: false, right: false });
     }
     return { screen: SCREEN_TITLE, save: null };
   }
   if (name === 'chase') {
-    // Golden-hour police chase: 3 stars, a fast car, sirens behind, looping a block.
+    // Golden-hour police chase: 4 stars, a fast car, interceptors behind, the SBP
+    // helicopter overhead, looping a downtown block. Sunset Courier is live, so
+    // the mission banner and the countdown show.
     st.clock = 17.6;
     st.fareTimer = 9999;
     st.player.x = 1200;
     st.player.y = 1100;
     putPlayerInCar(world, 'sport');
-    world.addWanted(3);
-    // First Wheels is live: steal done, the deli beacon shows a mission in progress.
-    world.startMission(0);
+    world.addWanted(4);
+    world.startMission(1);
     const drive = makeLoopDriver([
       { x: 1650, y: 1100 }, { x: 1650, y: 1550 },
       { x: 1200, y: 1550 }, { x: 1200, y: 1100 },
@@ -147,8 +149,10 @@ export function stageShot(name, world) {
   }
   if (name === 'mission') {
     // Dockside Deal on foot: Mara at the south docks, crate marker ahead, 2 stars.
+    st.clock = 10.5;
     st.fareTimer = 9999;
     world.startMission(4);
+    world.addWanted(2);
     st.player.x = 520;
     st.player.y = 2220;
     st.player.angle = Math.PI / 2;
@@ -163,21 +167,40 @@ export function stageShot(name, world) {
     }
     return { screen: SCREEN_PLAY, save: null };
   }
-  // Night: 3-star chase through downtown under lit windows, looping a block.
-  st.clock = 21.5;
+  if (name === 'heli') {
+    // Night manhunt: 5 stars, the helicopter searchlight on the player, interceptors
+    // all around, lit downtown windows. King of Solmar is live — the finale.
+    st.clock = 21.5;
+    st.fareTimer = 9999;
+    st.player.x = 2100;
+    st.player.y = 650;
+    putPlayerInCar(world, 'muscle');
+    world.addWanted(5);
+    world.startMission(9);
+    const drive = makeLoopDriver([
+      { x: 2550, y: 650 }, { x: 2550, y: 1100 },
+      { x: 2100, y: 1100 }, { x: 2100, y: 650 },
+    ]);
+    for (let i = 0; i < HELI_SECONDS / SAMPLE; i += 1) {
+      world.step(SAMPLE, drive(world));
+      if (st.gameOver) break;
+    }
+    return { screen: SCREEN_PLAY, save: null };
+  }
+  // Beach: a bright morning cruise down the palm-lined beach road in the buggy —
+  // ocean and sand on one side, downtown towers on the other. First Wheels is live.
+  // The beach road is the x=300 road: the car starts on it and stays on it.
+  st.clock = 10.0;
   st.fareTimer = 9999;
-  st.player.x = 2100;
-  st.player.y = 650;
-  putPlayerInCar(world, 'muscle');
-  world.addWanted(3);
-  // The Harbor Heist is live: the bank beacon and the escape objective show.
-  world.startMission(5);
-  const nightDrive = makeLoopDriver([
-    { x: 2550, y: 650 }, { x: 2550, y: 1100 },
-    { x: 2100, y: 1100 }, { x: 2100, y: 650 },
+  st.player.x = 260;
+  st.player.y = 700;
+  putPlayerInCar(world, 'beach');
+  world.startMission(0);
+  const drive = makeLoopDriver([
+    { x: 300, y: 2400 }, { x: 300, y: 400 },
   ]);
-  for (let i = 0; i < NIGHT_SECONDS / SAMPLE; i += 1) {
-    world.step(SAMPLE, nightDrive(world));
+  for (let i = 0; i < BEACH_SECONDS / SAMPLE; i += 1) {
+    world.step(SAMPLE, drive(world));
     if (st.gameOver) break;
   }
   return { screen: SCREEN_PLAY, save: null };
