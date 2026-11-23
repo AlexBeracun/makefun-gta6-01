@@ -87,7 +87,8 @@ export function createRenderer(gameCanvas, hudCanvas) {
     const p = state.player;
     // Top-left: money + health.
     ctx.fillStyle = 'rgba(0,0,0,0.45)';
-    roundRect(ctx, 14, 12, 250, 64, 10);
+    // 285 wide (was 250): "Ammo 24" at x=214 ran past the box edge and clipped.
+    roundRect(ctx, 14, 12, 285, 64, 10);
     ctx.fill();
     ctx.fillStyle = '#7ee787';
     text(`$${Math.floor(p.money).toLocaleString('en-US')}`, 28, 40, 26, '#7ee787', 'left', 'bold');
@@ -148,8 +149,10 @@ export function createRenderer(gameCanvas, hudCanvas) {
       text('E: enter car   Space: punch   Click: shoot', 18, VIEW_H - 18, 13, 'rgba(255,255,255,0.85)');
     }
     // Wanted flash.
+    // y=152 (was 130): the toast box ends at y=122 and the 16px WANTED text
+    // overlapped its bottom edge in the heli/mission shots.
     if (state.wanted > 0 && Math.floor(state.elapsed * 2) % 2 === 0) {
-      text('WANTED', VIEW_W / 2, 130, 16, '#ff6b6b', 'center', 'bold');
+      text('WANTED', VIEW_W / 2, 152, 16, '#ff6b6b', 'center', 'bold');
     }
     drawMinimap(state);
     // Off-screen objective arrow.

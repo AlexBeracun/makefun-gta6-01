@@ -10,7 +10,7 @@ import { SCREEN_PLAY, SCREEN_TITLE } from './render.js';
 const SAMPLE = STEP;
 const CHASE_SECONDS = 26;
 const HELI_SECONDS = 22;
-const MISSION_SECONDS = 3;
+const MISSION_SECONDS = 0.35;
 const BEACH_SECONDS = 20;
 
 /** Drive control steering toward a point 400 px ahead on the current road. */
@@ -148,14 +148,22 @@ export function stageShot(name, world) {
     return { screen: SCREEN_PLAY, save: null };
   }
   if (name === 'mission') {
-    // Dockside Deal on foot: Mara at the south docks, crate marker ahead, 2 stars.
+    // Dockside Deal on foot: Mara approaches crate 3 from the SOUTH, walking
+    // NORTH into the city — the old shot walked south toward the world edge,
+    // so the frame was grey sidewalk, flat horizon and empty sky. Facing north
+    // the background is roads, houses, traffic and downtown towers. Jump the
+    // mission to step 2 (crate 3 at 1500,2350) and start 170px south of it.
     st.clock = 10.5;
     st.fareTimer = 9999;
     world.startMission(4);
+    st.mission.step = 2;
     world.addWanted(2);
-    st.player.x = 520;
-    st.player.y = 2220;
-    st.player.angle = Math.PI / 2;
+    // 1.2s walked too far and collected the crate (banner flipped to the next
+    // step, beacon gone). 0.35s at sprint 265/s = ~93px: ends ~97px short of
+    // the crate, outside the 70px collect radius, crate + beacon stay in frame.
+    st.player.x = 1500;
+    st.player.y = 2540;
+    st.player.angle = -Math.PI / 2;
     for (let i = 0; i < MISSION_SECONDS / SAMPLE; i += 1) {
       const step = world.currentStep();
       if (step && step.x !== undefined) {
@@ -170,16 +178,19 @@ export function stageShot(name, world) {
   if (name === 'heli') {
     // Night manhunt: 5 stars, the helicopter searchlight on the player, interceptors
     // all around, lit downtown windows. King of Solmar is live — the finale.
+    // Loop in the houses district (1200-1650, 1100-1550), NOT downtown: the old
+    // loop ran between two giant towers that filled a third of the frame each
+    // and squeezed the player car to a speck between them.
     st.clock = 21.5;
     st.fareTimer = 9999;
-    st.player.x = 2100;
-    st.player.y = 650;
+    st.player.x = 1200;
+    st.player.y = 1100;
     putPlayerInCar(world, 'muscle');
     world.addWanted(5);
     world.startMission(9);
     const drive = makeLoopDriver([
-      { x: 2550, y: 650 }, { x: 2550, y: 1100 },
-      { x: 2100, y: 1100 }, { x: 2100, y: 650 },
+      { x: 1650, y: 1100 }, { x: 1650, y: 1550 },
+      { x: 1200, y: 1550 }, { x: 1200, y: 1100 },
     ]);
     for (let i = 0; i < HELI_SECONDS / SAMPLE; i += 1) {
       world.step(SAMPLE, drive(world));

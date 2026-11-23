@@ -102,7 +102,9 @@ export function createWorldRenderer(canvas) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color('#87b8d9');
   scene.fog = new THREE.Fog(0x87b8d9, 1400, 3200);
-  const camera = new THREE.PerspectiveCamera(62, VIEW_W / VIEW_H, 1, 7000);
+  // 68° (was 62°): the wider frame keeps the helicopter and the road ahead
+  // in shot without shrinking the player car to a speck.
+  const camera = new THREE.PerspectiveCamera(68, VIEW_W / VIEW_H, 1, 7000);
 
   const hemi = new THREE.HemisphereLight(0xbfd9ff, 0x6a7a52, 1.0);
   scene.add(hemi);
@@ -175,6 +177,45 @@ export function createWorldRenderer(canvas) {
     const slab = flat(WORLD_W - 300, WORLD_H - 100, COLORS.sidewalk, 0.08);
     slab.position.set(WORLD_W / 2 + 75, 0.08, WORLD_H / 2 + 50);
     g.add(slab);
+    // Clouds: soft white sprites high up, so the sky is never a flat empty
+    // band above the city (the old beach/mission shots were a third empty sky).
+    {
+      const c = document.createElement('canvas');
+      c.width = 256;
+      c.height = 128;
+      const x2 = c.getContext('2d');
+      const grad = x2.createRadialGradient(128, 64, 8, 128, 64, 120);
+      grad.addColorStop(0, 'rgba(255,255,255,0.95)');
+      grad.addColorStop(0.6, 'rgba(255,255,255,0.55)');
+      grad.addColorStop(1, 'rgba(255,255,255,0)');
+      x2.fillStyle = grad;
+      x2.fillRect(0, 0, 256, 128);
+      const cloudTex = new THREE.CanvasTexture(c);
+      const cloudMat = new THREE.SpriteMaterial({ map: cloudTex, transparent: true, depthWrite: false, opacity: 0.6 });
+      const cloudSpots = [[400, 460, 500], [1400, 500, 1800], [2400, 440, 900], [3200, 480, 2200], [900, 470, 2400], [2800, 500, 300], [1800, 450, 1300], [600, 490, 1400]];
+      for (const [cx, cy, cz] of cloudSpots) {
+        const sp = new THREE.Sprite(cloudMat);
+        sp.position.set(cx, cy, cz);
+        sp.scale.set(440, 120, 1);
+        g.add(sp);
+      }
+    }
+    // Sailboats on the ocean, so the beach shot's sea is not a flat blue slab.
+    for (const [bx, by] of [[-60, 500], [-110, 1100], [-40, 1700], [-100, 2300]]) {
+      const boat = new THREE.Group();
+      const hull = new THREE.Mesh(new THREE.BoxGeometry(34, 5, 13), new THREE.MeshLambertMaterial({ color: '#f2ead8' }));
+      hull.position.y = 2;
+      boat.add(hull);
+      const mast = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 34, 6), new THREE.MeshLambertMaterial({ color: '#5a4632' }));
+      mast.position.y = 20;
+      boat.add(mast);
+      const sail = new THREE.Mesh(new THREE.ConeGeometry(15, 32, 4), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+      sail.position.y = 22;
+      sail.rotation.y = Math.PI / 4;
+      boat.add(sail);
+      boat.position.set(bx, 0, by);
+      g.add(boat);
+    }
     // Parks.
     for (const park of state.parks) {
       const p = flat(park.w, park.h, COLORS.park, 0.09);
@@ -291,8 +332,19 @@ export function createWorldRenderer(canvas) {
   const heliMain = new THREE.Mesh(new THREE.BoxGeometry(46, 16, 22), new THREE.MeshLambertMaterial({ color: '#1c2733' }));
   const heliTail = new THREE.Mesh(new THREE.BoxGeometry(52, 6, 6), new THREE.MeshLambertMaterial({ color: '#1c2733' }));
   heliTail.position.set(-44, 2, 0);
+  // Glass cockpit + white SBP stripe + landing skids, so the helicopter reads
+  // as a police helicopter at a glance instead of a dark box.
+  const heliGlass = new THREE.Mesh(new THREE.BoxGeometry(10, 9, 20), new THREE.MeshBasicMaterial({ color: 0x9fd4ff }));
+  heliGlass.position.set(20, 2, 0);
+  const heliStripe = new THREE.Mesh(new THREE.BoxGeometry(47, 3, 23), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+  heliStripe.position.set(0, -3, 0);
+  for (const s of [-1, 1]) {
+    const skid = new THREE.Mesh(new THREE.BoxGeometry(44, 2, 2), new THREE.MeshLambertMaterial({ color: '#222' }));
+    skid.position.set(0, -11, s * 11);
+    heliBody.add(skid);
+  }
   const heliRotor = new THREE.Group();
-  const rotorBlade = new THREE.Mesh(new THREE.BoxGeometry(110, 1.5, 5), new THREE.MeshLambertMaterial({ color: '#222' }));
+  const rotorBlade = new THREE.Mesh(new THREE.BoxGeometry(130, 1.5, 5), new THREE.MeshLambertMaterial({ color: '#222' }));
   const rotorBlade2 = rotorBlade.clone();
   rotorBlade2.rotation.y = Math.PI / 2;
   heliRotor.add(rotorBlade);
@@ -300,7 +352,12 @@ export function createWorldRenderer(canvas) {
   heliRotor.position.y = 12;
   heliBody.add(heliMain);
   heliBody.add(heliTail);
+  heliBody.add(heliGlass);
+  heliBody.add(heliStripe);
   heliBody.add(heliRotor);
+  // Bigger airframe (1.35x): the old helicopter was a speck once the camera
+  // pulled back, and only its rotor ever made it into frame.
+  heliBody.scale.setScalar(1.35);
   heliGroup.add(heliBody);
   const heliCone = new THREE.Mesh(
     new THREE.ConeGeometry(60, 1, 20, 1, true),
@@ -643,8 +700,10 @@ export function createWorldRenderer(canvas) {
       desired.set(2100 + Math.cos(a) * 1000, 560, 1000 + Math.sin(a) * 700);
       look.set(2100, 40, 1000);
     } else {
-      const dist3 = p.inCar ? 370 : 240;
-      const height = p.inCar ? 170 : 125;
+      // Closer than before (was 370/240): the player car filled too little of
+      // the frame in the beach shot, and the helicopter sat on the frame edge.
+      const dist3 = p.inCar ? 335 : 215;
+      const height = p.inCar ? 155 : 110;
       const fx = Math.cos(p.angle);
       const fy = Math.sin(p.angle);
       desired.set(p.x - fx * dist3, height, p.y - fy * dist3);

@@ -81,10 +81,14 @@ export function stepHeli(ctx, dt) {
   const heli = state.heli;
   if (!heli) return;
   const p = state.player;
-  // Hover ahead of the player, so the helicopter is in the chase camera's frame
-  // and its searchlight rakes forward onto them.
-  const tx = p.x + Math.cos(p.angle) * 220;
-  const ty = p.y + Math.sin(p.angle) * 220;
+  // Hover ahead AND to the side of the player, lower than before: dead-ahead
+  // at z=260 put the helicopter right on the top edge of the chase camera's
+  // frame (only the rotor showed). 300 ahead + 170 to the side at z=200 keeps
+  // the whole helicopter in frame while its searchlight still rakes the player.
+  const fx = Math.cos(p.angle);
+  const fy = Math.sin(p.angle);
+  const tx = p.x + fx * 300 - fy * 170;
+  const ty = p.y + fy * 300 + fx * 170;
   const d = dist(heli.x, heli.y, tx, ty);
   if (heli.leaving) {
     // Fly away from the city and leave.
@@ -97,7 +101,7 @@ export function stepHeli(ctx, dt) {
     return;
   }
   // Hover ahead of the player, searchlight on them.
-  const want = 260;
+  const want = 200;
   heli.angle = Math.atan2(p.y - heli.y, p.x - heli.x);
   const ma = Math.atan2(ty - heli.y, tx - heli.x);
   const speed = d > 120 ? 460 : 300;
