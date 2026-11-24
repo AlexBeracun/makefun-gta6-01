@@ -5,6 +5,8 @@
 // the game, and starts the next one; failing one sends the player back to the giver.
 import { MISSIONS } from './config.js';
 import { EVENT_MISSION_DONE, EVENT_MISSION_FAIL } from './world-events.js';
+import { applyPayout, onMissionDone, onMissionFail } from './progression.js';
+import { beginNewStep, clearNewStep, isNewStepType, stepNewStep } from './mission-steps.js';
 
 export function missionDef(ctx) {
   const { state } = ctx;
@@ -23,10 +25,20 @@ export function startMission(ctx, index) {
   const { state, spawnPed, addWanted } = ctx;
   const def = MISSIONS[index];
   if (!def) return;
-  state.mission = { index, step: 0, collected: 0, passenger: false };
+  state.mission = { index, step: 0, collected: 0, passenger: false, runtime: null };
   state.missionTimer = def.timeLimit || 0;
   state.toast = `${def.title} — ${def.giver}: ${def.brief}`;
   state.toastTimer = 6;
+  // A mission opening on a chase/tail/survive step needs its target spawned now.
+  if (isNewStepType(def.steps[0].type)) beginNewStep(ctx, def.steps[0]);
+  if (def.steps[0].type === 'race' && state.race) {
+    state.mission.raceWinsAtStart = state.race.wins;
+    state.mission.raceLossesAtStart = state.race.losses;
+    state.mission.raceCounted = false;
+  }
+  if (def.steps[0].type === 'job' && state.jobs) {
+    state.mission.jobsDoneAtStart = state.jobs.done;
+  }
   // Any mission that opens with a pickup has someone waiting at the marker.
   if (def.steps[0].type === 'pickup') {
     const ped = spawnPed(ctx, def.steps[0].x + 20, def.steps[0].y + 30);
@@ -43,13 +55,18 @@ export function completeStep(ctx, events) {
   const m = state.mission;
   const def = missionDef(ctx);
   m.step += 1;
+  // A step that just finished may have left runtime behind — clear it, and
+  // start the next step's runtime if it is a chase/tail/survive step.
+  clearNewStep(ctx);
   if (m.step >= def.steps.length) {
-    state.player.money += def.pay;
-    state.stats.cashEarned += def.pay;
+    const pay = applyPayout(state, def.pay);
+    state.player.money += pay;
+    state.stats.cashEarned += pay;
     state.stats.missionsDone += 1;
     state.missionIndex += 1;
     state.mission = null;
-    state.toast = `Mission complete: ${def.title} — $${def.pay} earned!`;
+    onMissionDone(state);
+    state.toast = `Mission complete: ${def.title} — $${pay} earned!`;
     state.toastTimer = 5;
     if (state.missionIndex >= MISSIONS.length) {
       state.storyDone = true;
@@ -58,12 +75,26 @@ export function completeStep(ctx, events) {
     }
     return events | EVENT_MISSION_DONE;
   }
+  // Start the next step's runtime when it is a chase, tail or survive step.
+  if (isNewStepType(def.steps[m.step].type)) beginNewStep(ctx, def.steps[m.step]);
+  // Snapshot race wins / courier runs so race and job steps only count
+  // fresh wins, not ones from before the step began.
+  if (def.steps[m.step].type === 'race' && state.race) {
+    m.raceWinsAtStart = state.race.wins;
+    m.raceLossesAtStart = state.race.losses;
+    m.raceCounted = false;
+  }
+  if (def.steps[m.step].type === 'job' && state.jobs) {
+    m.jobsDoneAtStart = state.jobs.done;
+  }
   return events;
 }
 
 export function failMission(ctx, events) {
   const { state } = ctx;
   const def = missionDef(ctx);
+  clearNewStep(ctx);
+  onMissionFail(state);
   state.mission = null;
   state.toast = `Mission failed: ${def.title}. Talk to ${def.giver} again — press M for missions.`;
   state.toastTimer = 5;
@@ -120,6 +151,25 @@ export function stepMission(ctx, dt) {
     else if (state.wanted < step.stars && state.missionTimer <= 0) {
       // Keep the heat on until the player reaches the safehouse.
       addWanted(step.stars - state.wanted);
+    }
+  } else if (isNewStepType(step.type)) {
+    // Chase, tail and survive steps live in mission-steps.js.
+    const outcome = stepNewStep(ctx, step, dt);
+    if (outcome === 'done') events = completeStep(ctx, events);
+    else if (outcome === 'fail') return failMission(ctx, events);
+  } else if (step.type === 'race') {
+    // The race step is done when the player wins a street race after it began.
+    if (state.race && (m.raceWinsAtStart ?? 0) < state.race.wins && !m.raceCounted) {
+      m.raceCounted = true;
+      events = completeStep(ctx, events);
+    } else if (state.race && (m.raceLossesAtStart ?? 0) < state.race.losses && !m.raceCounted) {
+      m.raceCounted = true;
+      return failMission(ctx, events);
+    }
+  } else if (step.type === 'job') {
+    // The courier step is done when the player finishes a courier run.
+    if (state.jobs && state.jobs.done > (m.jobsDoneAtStart ?? 0)) {
+      events = completeStep(ctx, events);
     }
   }
   return events;

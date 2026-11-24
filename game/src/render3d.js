@@ -327,6 +327,31 @@ export function createWorldRenderer(canvas) {
   beacon.add(beaconRing);
   scene.add(beacon);
 
+  // Extra beacons for the new systems: orange for courier jobs, pink for the
+  // street race, red for a chase target. Same shape, different colour.
+  function makeBeacon(color) {
+    const group = new THREE.Group();
+    const pillar = new THREE.Mesh(
+      new THREE.CylinderGeometry(20, 20, 180, 12, 1, true),
+      new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.2, side: THREE.DoubleSide, depthWrite: false }),
+    );
+    pillar.position.y = 90;
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(16, 24, 24),
+      new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false }),
+    );
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = 0.5;
+    group.add(pillar);
+    group.add(ring);
+    group.visible = false;
+    scene.add(group);
+    return group;
+  }
+  const jobBeacon = makeBeacon(0xff9a4d);
+  const raceBeacon = makeBeacon(0xd02090);
+  const chaseBeacon = makeBeacon(0xff2e2e);
+
   // Helicopter.
   const heliGroup = new THREE.Group();
   const heliBody = new THREE.Group();
@@ -554,6 +579,17 @@ export function createWorldRenderer(canvas) {
     const sky = night ? new THREE.Color('#0b1030') : dusk ? new THREE.Color('#ff9a4d') : new THREE.Color('#87b8d9');
     scene.background = sky;
     scene.fog.color.copy(sky);
+    // Weather fog closes the view right in: the city disappears into murk.
+    if (state.weather && state.weather.kind === 'fog') {
+      scene.fog.near = 500;
+      scene.fog.far = 1100;
+    } else if (state.weather && state.weather.kind === 'rain') {
+      scene.fog.near = 1100;
+      scene.fog.far = 2600;
+    } else {
+      scene.fog.near = 1400;
+      scene.fog.far = 3200;
+    }
     hemi.intensity = night ? 0.35 : dusk ? 0.8 : 1.0;
     const sunAngle = ((state.clock - 6) / 12) * Math.PI;
     sun.position.set(
@@ -692,6 +728,19 @@ export function createWorldRenderer(canvas) {
     } else {
       beacon.visible = false;
     }
+    // Job, race and chase beacons: each follows its own live target.
+    const jobT = state.jobs && state.jobs.courier
+      ? (() => { const d = state.jobs.courier.drops.find((x) => !x.done); return d ? { x: d.x, y: d.y } : null; })()
+      : null;
+    jobBeacon.visible = !!jobT;
+    if (jobT) jobBeacon.position.set(jobT.x, 0, jobT.y);
+    const raceT = state.race && state.race.active
+      ? state.race.checkpoints[state.race.checkpoint] : null;
+    raceBeacon.visible = !!raceT;
+    if (raceT) raceBeacon.position.set(raceT.x, 0, raceT.y);
+    const chaseCar = state.mission && state.mission.runtime && state.mission.runtime.car;
+    chaseBeacon.visible = !!chaseCar;
+    if (chaseCar) chaseBeacon.position.set(chaseCar.x, 0, chaseCar.y);
 
     // Camera.
     const desired = new THREE.Vector3();

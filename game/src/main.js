@@ -3,10 +3,17 @@
 // steps, and the renderer paints what is there. Screens: title, play, missions, paused,
 // busted/wasted, and story complete. Autosaves after every mission.
 //
+// Gameplay systems (10): open-world driving and carjacking; the 5-star wanted
+// system with police, foot cops and the helicopter; story missions; courier
+// jobs and vigilante bounties; ranks, XP and mission combos; the weather
+// cycle; chase, tail and survive mission steps; street races and ambushes;
+// police escalation with roadblocks and undercover units; nitro, vehicle
+// handling and rotating street challenges.
+//
 // ?seed=N fixes the city. ?shot=chase|heli|mission|beach (with &seed=N) stages that
 // scene instead of running the loop, paints it twice and sets window.__shotReady.
 import { MISSIONS, SAVE_KEY, SEED, STEP } from './config.js';
-import { createWorld, EVENT_BUSTED, EVENT_MISSION_DONE, EVENT_MISSION_FAIL, EVENT_WASTED } from './world.js';
+import { createWorld, EVENT_BUSTED, EVENT_CHALLENGE, EVENT_JOB, EVENT_MISSION_DONE, EVENT_MISSION_FAIL, EVENT_RACE, EVENT_WASTED } from './world.js';
 import { createInput } from './input.js';
 import { createAudio } from './audio.js';
 import {
@@ -101,6 +108,10 @@ function runGame() {
       screen = SCREEN_OVER;
       announce('Wasted in Solmar Bay.');
     }
+    // Jobs, races and challenges get their own little jingle.
+    if (events & (EVENT_JOB | EVENT_RACE | EVENT_CHALLENGE)) {
+      audio.event();
+    }
   }
 
   function buildControl() {
@@ -114,6 +125,7 @@ function runGame() {
       right: input.down('d', 'arrowright'),
       sprint: input.down('shift'),
       enter: input.wasPressed('e'),
+      job: input.wasPressed('j'),
       punch: input.wasPressed(' '),
       brake: input.down(' '),
       shooting,
@@ -175,6 +187,7 @@ function runGame() {
         accumulator -= STEP;
         ctrl.enter = false;
         ctrl.punch = false;
+        ctrl.job = false;
         if (screen !== SCREEN_PLAY) break;
       }
       // Auto-start the next story mission once the player is settled.

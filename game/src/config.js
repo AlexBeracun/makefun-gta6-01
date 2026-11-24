@@ -43,6 +43,9 @@ export const CARS = [
   { id: 'muscle', name: 'Thunder V8', color: '#7a2fd0', speed: 500, accel: 360, turn: 2.7, len: 48, wid: 22 },
   { id: 'beach', name: 'Beach Buggy', color: '#f2a541', speed: 400, accel: 320, turn: 3.0, len: 42, wid: 22 },
   { id: 'police', name: 'SBP Interceptor', color: '#20242e', speed: 560, accel: 420, turn: 3.0, len: 48, wid: 22 },
+  { id: 'bike', name: 'Street Bike', color: '#e8b13c', speed: 600, accel: 520, turn: 3.6, len: 40, wid: 16 },
+  { id: 'limo', name: 'Solmar Limo', color: '#1a1a1a', speed: 460, accel: 240, turn: 2.0, len: 64, wid: 24 },
+  { id: 'truck', name: 'Haul Truck', color: '#8a6b4a', speed: 380, accel: 200, turn: 1.8, len: 62, wid: 26 },
 ];
 
 // Story missions. Each step is a waypoint objective.
@@ -146,6 +149,63 @@ export const MISSIONS = [
       { type: 'escape', stars: 4, text: 'Escape! Lose the 4-star wanted level and reach the safehouse', x: 3100, y: 2100 },
     ],
   },
+  {
+    id: 'm11', title: 'Tail Job', giver: 'Rosa',
+    brief: 'A rival courier is skimming Rosa\'s routes. Tail him for 25 seconds — stay in the gold zone, never too close.',
+    pay: 1500,
+    steps: [
+      { type: 'tail', duration: 25, text: 'Tail the target car — stay in the gold zone (150–650px)' },
+      { type: 'goto', x: 2900, y: 700, text: 'Report back to Rosa at the Grand Solmar', radius: 90 },
+    ],
+  },
+  {
+    id: 'm12', title: 'Street Chase', giver: 'Dee',
+    brief: 'A thief took Dee\'s coupe. Chase him down and ram his car to a stop — three good hits will do it.',
+    pay: 1800,
+    steps: [
+      { type: 'chase', text: 'Chase the thief — ram his car 3 times to stop it' },
+      { type: 'goto', x: 1330, y: 620, text: 'Bring the coupe back to the Palm Row deli', radius: 90 },
+    ],
+  },
+  {
+    id: 'm13', title: 'Hold the Heat', giver: 'Tomas',
+    brief: 'Tomas needs the police busy while his crew moves. Survive 20 seconds at 2 stars — do not lose the heat early.',
+    pay: 1600,
+    steps: [
+      { type: 'survive', stars: 2, duration: 20, text: 'Survive 20s at 2 stars — keep the heat on' },
+      { type: 'goto', x: 3100, y: 2100, text: 'Slip away to the safehouse', radius: 90 },
+    ],
+  },
+  {
+    id: 'm14', title: 'Race Night', giver: 'Dee',
+    brief: 'Race night at the start line. Win the street race, then bring the purse to the marina.',
+    pay: 2200,
+    steps: [
+      { type: 'goto', x: 1800, y: 2050, text: 'Reach the Race Start line', radius: 110 },
+      { type: 'race', text: 'Win the street race — 5 checkpoints against the rival' },
+      { type: 'goto', x: 2700, y: 2280, text: 'Bring the winnings to the marina pier', radius: 80 },
+    ],
+  },
+  {
+    id: 'm15', title: 'Courier King', giver: 'Rosa',
+    brief: 'Rosa\'s biggest client needs three drops in 150 seconds. Take the job at the depot and run it clean.',
+    pay: 2500, timeLimit: 150,
+    steps: [
+      { type: 'job', text: 'Take a courier job at the depot (press J there) and finish it' },
+      { type: 'goto', x: 2250, y: 2420, text: 'Check in at the courier depot', radius: 80 },
+    ],
+  },
+  {
+    id: 'm16', title: 'King of Solmar II', giver: 'Dee',
+    brief: 'The finale. Tail the banker, chase his getaway car, and survive a 3-star manhunt to the safehouse.',
+    pay: 10000,
+    steps: [
+      { type: 'tail', duration: 20, text: 'Tail the banker\'s car — stay in the gold zone' },
+      { type: 'chase', text: 'Chase the getaway car — ram it 3 times to stop it' },
+      { type: 'survive', stars: 3, duration: 25, text: 'Survive 25s at 3 stars' },
+      { type: 'goto', x: 3100, y: 2100, text: 'Escape to the safehouse', radius: 90 },
+    ],
+  },
 ];
 
 // Side activities.
@@ -164,6 +224,8 @@ export const PLACES = {
   marina: { x: 2700, y: 2280, name: 'Marina Pier' },
   hotel: { x: 2900, y: 700, name: 'Grand Solmar' },
   bank: { x: 2250, y: 1150, name: 'Harbor Bank' },
+  raceStart: { x: 1800, y: 2050, name: 'Race Start' },
+  courierDepot: { x: 2250, y: 2420, name: 'Courier Depot' },
 };
 
 export const WANTED_DECAY_SECONDS = 28;
@@ -172,8 +234,9 @@ export const SAVE_KEY = 'solmar-heat-save-v1';
 
 export const CONTROLS = [
   ['W A S D / Arrows', 'Move / drive'],
-  ['Shift', 'Sprint'],
+  ['Shift', 'Sprint / Nitro boost (in a car)'],
   ['E', 'Enter / steal car, exit car'],
+  ['J', 'Take / cancel a courier job (at the depot)'],
   ['Space', 'Handbrake (car) / punch (on foot)'],
   ['Mouse click', 'Shoot (with pistol)'],
   ['M', 'Mission list'],

@@ -20,6 +20,26 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDossier } from './vendor/makefun-game.ts';
 
+// SOLMAR HEAT gameplay systems — the ten systems the entry ships with:
+// 1. open-world driving and carjacking, 2. the 5-star wanted system with
+// police, foot cops and the helicopter, 3. story missions, 4. courier jobs
+// and vigilante bounties, 5. ranks, XP and mission combos, 6. the weather
+// cycle, 7. chase, tail and survive mission steps, 8. street races and
+// ambushes, 9. police escalation with roadblocks and undercover units, and
+// 10. nitro, vehicle handling and rotating street challenges.
+export const GAMEPLAY_SYSTEMS = [
+  'open-world driving and carjacking',
+  '5-star wanted system with police and helicopter',
+  'story missions',
+  'courier jobs and vigilante bounties',
+  'ranks, XP and mission combos',
+  'weather cycle',
+  'chase, tail and survive mission steps',
+  'street races and ambushes',
+  'police escalation with roadblocks and undercover units',
+  'nitro, vehicle handling and rotating street challenges',
+];
+
 const here = fileURLToPath(new URL('.', import.meta.url));
 const out = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
 

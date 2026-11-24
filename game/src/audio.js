@@ -127,6 +127,10 @@ export function createAudio() {
     mission() {
       [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => tone(f, 0.16, 'triangle', 0.2), i * 110));
     },
+    event() {
+      // Short two-note jingle for jobs, races and challenges.
+      [784, 1047].forEach((f, i) => setTimeout(() => tone(f, 0.14, 'triangle', 0.18), i * 120));
+    },
     busted() {
       [392, 330, 262, 196].forEach((f, i) => setTimeout(() => tone(f, 0.25, 'sawtooth', 0.12), i * 160));
     },

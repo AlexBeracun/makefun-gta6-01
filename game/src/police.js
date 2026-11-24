@@ -5,6 +5,8 @@
 // decay, so a 3-star chase has to be lost on the ground, not waited out.
 import { CARS, WORLD_H, WORLD_W } from './config.js';
 import { angleLerp, clamp, dist, pick, range } from './random.js';
+import { heliGrounded } from './weather.js';
+import { policeSpeedFactor } from './police-plus.js';
 
 export function spawnPoliceCar(ctx) {
   const { state, rng } = ctx;
@@ -73,6 +75,11 @@ export function maintainPolice(ctx) {
 
 export function maintainHeli(ctx) {
   const { state } = ctx;
+  // Fog grounds the helicopter: it cannot fly, and one already up is sent home.
+  if (heliGrounded(state.weather)) {
+    if (state.heli) state.heli.leaving = true;
+    return;
+  }
   if (state.wanted >= 3 && !state.heli) spawnHeli(ctx);
   if (state.wanted === 0 && state.heli) state.heli.leaving = true;
 }
@@ -118,10 +125,17 @@ export function stepPolice(ctx, dt) {
   const p = state.player;
   for (const car of state.cars) {
     if (!car.police) continue;
+    // Roadblock cars hold their line: they are a wall, not a chase car.
+    if (car.roadblock) {
+      car.speed = 0;
+      continue;
+    }
     const targetAngle = Math.atan2(p.y - car.y, p.x - car.x);
     car.angle = angleLerp(car.angle, targetAngle, cl(2.2 * dt, 0, 1));
     const d = d2(car.x, car.y, p.x, p.y);
-    const wantSpeed = d > 120 ? car.def.speed : car.def.speed * 0.55;
+    // At five stars every police car runs 12% faster.
+    const boost = policeSpeedFactor(state);
+    const wantSpeed = (d > 120 ? car.def.speed : car.def.speed * 0.55) * boost;
     car.speed += cl(wantSpeed - car.speed, -400 * dt, 320 * dt);
     car.x += Math.cos(car.angle) * car.speed * dt;
     car.y += Math.sin(car.angle) * car.speed * dt;

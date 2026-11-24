@@ -7,6 +7,8 @@ import {
 } from './config.js';
 import { clamp, dist } from './random.js';
 import { EVENT_CASH, EVENT_PUNCH, EVENT_SHOT } from './world-events.js';
+import { gripFactor } from './weather.js';
+import { effectiveTopSpeed, handlingFor, nitroActive } from './vehicles.js';
 
 export function nearestCar(ctx, x, y, maxDist) {
   const { state } = ctx;
@@ -90,17 +92,22 @@ export function stepPlayerCar(ctx, dt, c) {
   const p = state.player;
   const car = p.inCar;
   const def = car.def;
+  // Rain grip + vehicle handling + nitro shape how the car answers.
+  const grip = gripFactor(state.weather);
+  const handling = handlingFor(def);
+  const boosting = nitroActive(state);
+  const topSpeed = effectiveTopSpeed(state, def);
   const throttle = (c.up ? 1 : 0) - (c.down ? 0.55 : 0);
   const steer = (c.right ? 1 : 0) - (c.left ? 1 : 0);
   const handbrake = !!c.brake;
-  if (throttle > 0) car.speed += def.accel * throttle * dt;
-  else if (throttle < 0) car.speed += def.accel * throttle * dt * 0.9;
+  if (throttle > 0) car.speed += def.accel * handling.accel * grip * throttle * dt;
+  else if (throttle < 0) car.speed += def.accel * handling.accel * grip * throttle * dt * 0.9;
   else car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), 140 * dt);
   if (handbrake) car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), 700 * dt);
-  car.speed = cl(car.speed, -def.speed * 0.45, def.speed);
-  // Drag at speed.
-  car.speed -= car.speed * 0.12 * dt;
-  const steerAmount = steer * def.turn * dt * cl(Math.abs(car.speed) / 120, 0, 1) * (car.speed < 0 ? -1 : 1);
+  car.speed = cl(car.speed, -topSpeed * 0.45, topSpeed);
+  // Drag at speed — less of it while the nitro is burning.
+  car.speed -= car.speed * (boosting ? 0.04 : 0.12) * dt;
+  const steerAmount = steer * def.turn * handling.turn * grip * dt * cl(Math.abs(car.speed) / 120, 0, 1) * (car.speed < 0 ? -1 : 1);
   car.angle += steerAmount;
   car.x += Math.cos(car.angle) * car.speed * dt;
   car.y += Math.sin(car.angle) * car.speed * dt;

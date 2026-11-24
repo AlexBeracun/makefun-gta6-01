@@ -7,6 +7,11 @@ import {
 } from './config.js';
 import { clamp } from './random.js';
 import { createWorldRenderer } from './render3d.js';
+import { jobTarget } from './jobs.js';
+import { raceTarget, ambushTarget } from './street-events.js';
+import { currentChallenge, challengeProgress } from './challenges.js';
+import { weatherLabel } from './weather.js';
+import { rankName, rankProgress } from './progression.js';
 
 export const SCREEN_TITLE = 'title';
 export const SCREEN_PLAY = 'play';
@@ -73,7 +78,7 @@ export function createRenderer(gameCanvas, hudCanvas) {
           ? { x: state.fare.ped.x, y: state.fare.ped.y, label: 'Pick up the fare' }
           : { x: state.fare.destX, y: state.fare.destY, label: 'Drop off the passenger' };
       }
-      return null;
+      return sideTarget(state);
     }
     const def = MISSIONS[m.index];
     const step = def.steps[m.step];
@@ -81,7 +86,28 @@ export function createRenderer(gameCanvas, hudCanvas) {
     if (step.type === 'steal') return { x: state.player.x, y: state.player.y, label: step.text, self: true };
     if (step.type === 'wanted' || step.type === 'clear') return { x: state.player.x, y: state.player.y, label: step.text, self: true };
     if (step.type === 'escape') return { x: step.x, y: step.y, label: step.text };
+    if (step.type === 'chase' || step.type === 'tail') {
+      const rt = m.runtime;
+      if (rt && rt.car) return { x: rt.car.x, y: rt.car.y, label: step.text };
+      return { x: state.player.x, y: state.player.y, label: step.text, self: true };
+    }
+    if (step.type === 'survive') return { x: state.player.x, y: state.player.y, label: step.text, self: true };
+    if (step.type === 'race') {
+      const rt = raceTarget(state);
+      if (rt) return rt;
+      return { x: 1800, y: 2050, label: 'Reach the Race Start line' };
+    }
+    if (step.type === 'job') {
+      const jt = jobTarget(state);
+      if (jt) return jt;
+      return { x: 2250, y: 2420, label: 'Go to the Courier Depot' };
+    }
     return { x: step.x, y: step.y, label: step.text };
+  }
+
+  // No mission: a live job, race or ambush is the objective instead.
+  function sideTarget(state) {
+    return jobTarget(state) || raceTarget(state) || ambushTarget(state);
   }
 
   function drawHud(state, screen) {
@@ -102,6 +128,31 @@ export function createRenderer(gameCanvas, hudCanvas) {
     ctx.fill();
     text('HP', 186, 61, 12, '#fff');
     text(`Ammo ${p.ammo}`, 214, 61, 12, '#fff');
+    // Rank + XP bar under the money box.
+    if (state.prog) {
+      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      roundRect(ctx, 14, 82, 285, 34, 10);
+      ctx.fill();
+      text(`${rankName(state.prog)}`, 28, 96, 12, '#ffd23e', 'left', 'bold');
+      text(`XP ${state.prog.xp}`, 28, 109, 11, '#ccc');
+      ctx.fillStyle = '#333';
+      roundRect(ctx, 120, 99, 165, 8, 4);
+      ctx.fill();
+      ctx.fillStyle = '#ffd23e';
+      roundRect(ctx, 120, 99, 165 * rankProgress(state.prog), 8, 4);
+      ctx.fill();
+      if (state.prog.combo > 1) text(`Combo x${state.prog.combo.toFixed(2)}`, 214, 96, 12, '#7ee787', 'right', 'bold');
+    }
+    // Weather + live challenge, under the wanted box.
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    roundRect(ctx, VIEW_W - 268, 82, 254, 34, 10);
+    ctx.fill();
+    text(weatherLabel(state.weather), VIEW_W - 254, 104, 13, '#fff', 'left', 'bold');
+    const ch = currentChallenge(state);
+    if (ch) {
+      const pct = Math.round(challengeProgress(state) * 100);
+      text(`${ch.name} ${pct}%`, VIEW_W - 28, 104, 12, '#7ee7f2', 'right');
+    }
     // Top-right: wanted stars + clock.
     ctx.fillStyle = 'rgba(0,0,0,0.45)';
     roundRect(ctx, VIEW_W - 268, 12, 254, 64, 10);
@@ -145,6 +196,20 @@ export function createRenderer(gameCanvas, hudCanvas) {
       text(p.inCar.def.name, 158, VIEW_H - 30, 13, '#ccc');
       if (p.inCar.hp < 100) {
         text(`Damage ${Math.max(0, Math.round(p.inCar.hp))}%`, 28, VIEW_H - 14, 11, '#ffb3b3');
+      }
+      // Nitro meter: hold Shift to burn it.
+      if (state.vehicles) {
+        ctx.fillStyle = 'rgba(0,0,0,0.45)';
+        roundRect(ctx, 214, VIEW_H - 66, 150, 52, 10);
+        ctx.fill();
+        text('NITRO', 228, VIEW_H - 42, 12, '#7ee7f2', 'left', 'bold');
+        ctx.fillStyle = '#333';
+        roundRect(ctx, 228, VIEW_H - 34, 122, 10, 5);
+        ctx.fill();
+        ctx.fillStyle = state.vehicles.burning ? '#ff9a4d' : '#2ec4b6';
+        roundRect(ctx, 228, VIEW_H - 34, 122 * clamp(state.vehicles.nitro / 100, 0, 1), 10, 5);
+        ctx.fill();
+        text('Shift', 228, VIEW_H - 14, 11, '#ccc');
       }
     } else {
       text('E: enter car   Space: punch   Click: shoot', 18, VIEW_H - 18, 13, 'rgba(255,255,255,0.85)');
@@ -218,6 +283,38 @@ export function createRenderer(gameCanvas, hudCanvas) {
       ctx.arc(mx + target.x * sx, my + target.y * sy, 5, 0, Math.PI * 2);
       ctx.fill();
     }
+    // Job drop (orange), race checkpoint (pink), ambush shooter (red).
+    const jt = jobTarget(state);
+    if (jt) {
+      ctx.fillStyle = '#ff9a4d';
+      ctx.beginPath();
+      ctx.arc(mx + jt.x * sx, my + jt.y * sy, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    const rt = raceTarget(state);
+    if (rt) {
+      ctx.fillStyle = '#d02090';
+      ctx.beginPath();
+      ctx.arc(mx + rt.x * sx, my + rt.y * sy, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (state.ambush && state.ambush.active) {
+      ctx.fillStyle = '#ff2e2e';
+      for (const s of state.ambush.shooters) {
+        ctx.beginPath();
+        ctx.arc(mx + s.x * sx, my + s.y * sy, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    // Bounty suspect car (gold ring).
+    if (state.jobs && state.jobs.bounty && state.jobs.bounty.car) {
+      const b = state.jobs.bounty.car;
+      ctx.strokeStyle = '#ffd23e';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(mx + b.x * sx, my + b.y * sy, 5, 0, Math.PI * 2);
+      ctx.stroke();
+    }
     // Police.
     ctx.fillStyle = '#2e6bff';
     for (const car of state.cars) {
@@ -280,7 +377,7 @@ export function createRenderer(gameCanvas, hudCanvas) {
     text(`An open-world story starring ${HERO_NAME} — drive, steal, run missions, lose the heat.`, VIEW_W / 2, 282, 17, '#fff', 'center');
     const lines = [
       'A complete open world: beach, downtown, marina and docks.',
-      'Traffic, pedestrians, police chases, helicopter manhunts, 10 story missions, fares, shops.',
+      'Traffic, pedestrians, police chases, helicopter manhunts, 16 story missions, fares, shops.',
       'WASD drive & walk · E steal car · Space punch / handbrake · Click shoot · M missions',
     ];
     lines.forEach((line, i) => text(line, VIEW_W / 2, 330 + i * 28, 16, '#e8e4da', 'center'));
@@ -294,23 +391,23 @@ export function createRenderer(gameCanvas, hudCanvas) {
     ctx.fillStyle = 'rgba(8,12,24,0.72)';
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
     text('MISSIONS — Solmar Bay', VIEW_W / 2, 90, 34, '#ffd23e', 'center', 'bold');
-    // Two columns of five: ten missions do not fit in one column.
+    // Two columns of eight: sixteen missions do not fit in one column.
     MISSIONS.forEach((m, i) => {
-      const col = Math.floor(i / 5);
-      const row = i % 5;
+      const col = Math.floor(i / 8);
+      const row = i % 8;
       const x0 = 60 + col * 600;
-      const y = 140 + row * 76;
+      const y = 118 + row * 58;
       const done = i < state.missionIndex;
       const current = state.mission && state.mission.index === i;
       const locked = i > state.missionIndex;
       ctx.fillStyle = current ? 'rgba(242,201,76,0.25)' : done ? 'rgba(126,231,135,0.14)' : 'rgba(255,255,255,0.07)';
-      roundRect(ctx, x0, y, 560, 64, 10);
+      roundRect(ctx, x0, y, 560, 50, 10);
       ctx.fill();
-      text(`${done ? '✓' : locked ? '🔒' : current ? '▶' : `${i + 1}.`} ${m.title}`, x0 + 20, y + 28, 19, done ? '#7ee787' : '#fff', 'left', 'bold');
+      text(`${done ? '✓' : locked ? '🔒' : current ? '▶' : `${i + 1}.`} ${m.title}`, x0 + 20, y + 22, 17, done ? '#7ee787' : '#fff', 'left', 'bold');
       // The brief is one line: cut it to the card width.
       const brief = m.brief.length > 72 ? `${m.brief.slice(0, 69)}…` : m.brief;
-      text(`${m.giver} · $${m.pay} · ${brief}`, x0 + 20, y + 52, 13, '#ccc');
-      if (current) text('IN PROGRESS', x0 + 540, y + 28, 13, '#ffd23e', 'right', 'bold');
+      text(`${m.giver} · $${m.pay} · ${brief}`, x0 + 20, y + 42, 12, '#ccc');
+      if (current) text('IN PROGRESS', x0 + 540, y + 22, 12, '#ffd23e', 'right', 'bold');
     });
     text('Press M or Esc to return · Missions start automatically in order — walk to the marker', VIEW_W / 2, 620, 15, '#aaa', 'center');
     text('Tip: the Spray Shop (S on the map) clears your wanted level for $200.', VIEW_W / 2, 648, 15, '#aaa', 'center');
@@ -322,6 +419,13 @@ export function createRenderer(gameCanvas, hudCanvas) {
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
     const lines = [
       `Money $${Math.floor(state.player.money).toLocaleString('en-US')} · Missions ${state.missionIndex}/${MISSIONS.length} · Cars stolen ${state.stats.carsStolen}`,
+      state.prog
+        ? `Rank ${rankName(state.prog)} · XP ${state.prog.xp} · Combo x${state.prog.combo.toFixed(2)} · Near misses ${state.prog.nearMisses}`
+        : '',
+      state.prog
+        ? `Driven ${Math.round(state.prog.distance).toLocaleString('en-US')}m · Top speed ${Math.round(state.prog.topSpeed * 0.36)} km/h · Crashes ${state.prog.crashes}`
+        : '',
+      state.jobs ? `Courier runs ${state.jobs.done} · Bounties ${state.jobs.bountiesDone} · Races won ${state.race ? state.race.wins : 0}` : '',
       '',
       ...CONTROLS.map(([k, v]) => `${k} — ${v}`),
     ];

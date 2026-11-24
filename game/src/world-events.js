@@ -13,3 +13,7 @@ export const EVENT_CRASH = 128;
 export const EVENT_PICKUP = 256;
 export const EVENT_PUNCH = 512;
 export const EVENT_MISSION_START = 1024;
+export const EVENT_JOB = 2048;
+export const EVENT_RACE = 4096;
+export const EVENT_CHALLENGE = 8192;
+export const EVENT_WEATHER = 16384;

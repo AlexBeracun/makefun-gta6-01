@@ -6,10 +6,13 @@
 import { CARS, WORLD_H, WORLD_W } from './config.js';
 import { clamp, pick, range } from './random.js';
 import { ROAD_XS, ROAD_YS } from './city.js';
+import { pickTrafficDef } from './vehicles.js';
+import { trafficFactor } from './weather.js';
 
 export function spawnTrafficCar(ctx, nearX, nearY) {
   const { state, rng } = ctx;
-  const def = pick(rng, CARS.filter((c) => c.id !== 'police'));
+  const rank = state.prog ? state.prog.rank : 0;
+  const def = pickTrafficDef(rng, rank);
   const p = nearX === undefined ? randomRoadPoint(ctx) : { x: nearX, y: nearY, angle: rng() * Math.PI * 2 };
   const car = {
     def, x: p.x, y: p.y, angle: p.angle, speed: 0, targetSpeed: range(rng, 110, 170),
@@ -31,8 +34,11 @@ export function randomRoadPoint(ctx) {
 
 export function stepTraffic(ctx, dt) {
   const { state, rng, pushOutOfBuildings } = ctx;
+  // Rain slows every driver on the road, not just the player.
+  const weatherSlow = trafficFactor(state.weather);
   for (const car of state.cars) {
     if (!car.traffic) continue;
+    if (car.nearMissCd > 0) car.nearMissCd -= dt;
     // Slow for a car ahead.
     let ahead = null;
     for (const other of state.cars) {
@@ -43,7 +49,8 @@ export function stepTraffic(ctx, dt) {
       const side = Math.abs(-dx * Math.sin(car.angle) + dy * Math.cos(car.angle));
       if (forward > 0 && forward < 90 && side < 26) ahead = other;
     }
-    const target = ahead ? Math.min(car.cruise, ahead.speed) : car.cruise;
+    const cruise = car.cruise * weatherSlow;
+    const target = ahead ? Math.min(cruise, ahead.speed) : cruise;
     car.speed += clamp(target - car.speed, -260 * dt, 180 * dt);
     car.x += Math.cos(car.angle) * car.speed * dt;
     car.y += Math.sin(car.angle) * car.speed * dt;

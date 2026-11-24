@@ -26,12 +26,21 @@ import {
   nearestCar, stepEnterExit, stepPlayerCar, stepPlayerOnFoot, stepServices,
 } from './player.js';
 import { applySave, loadGame, saveGame } from './save.js';
+import { createJobs, handleJobKey, stepJobs } from './jobs.js';
+import { createProgression, checkNearMiss, recordCrash, trackDriving } from './progression.js';
+import { createWeather, stepWeather } from './weather.js';
+import { createRace, createAmbush, stepStreetEvents } from './street-events.js';
+import { createPolicePlus, roadblockHit, stepPolicePlus } from './police-plus.js';
+import { createVehicles, stepNitro } from './vehicles.js';
+import { createChallenges, stepChallenges } from './challenges.js';
 import {
-  EVENT_BUSTED, EVENT_CRASH, EVENT_MISSION_DONE, EVENT_MISSION_FAIL, EVENT_WASTED,
+  EVENT_BUSTED, EVENT_CHALLENGE, EVENT_CRASH, EVENT_JOB, EVENT_MISSION_DONE, EVENT_MISSION_FAIL,
+  EVENT_RACE, EVENT_WASTED, EVENT_WEATHER,
 } from './world-events.js';
 
 export {
-  EVENT_BUSTED, EVENT_CRASH, EVENT_MISSION_DONE, EVENT_MISSION_FAIL, EVENT_WASTED,
+  EVENT_BUSTED, EVENT_CHALLENGE, EVENT_CRASH, EVENT_JOB, EVENT_MISSION_DONE, EVENT_MISSION_FAIL,
+  EVENT_RACE, EVENT_WASTED, EVENT_WEATHER,
 } from './world-events.js';
 export {
   EVENT_CASH, EVENT_MISSION_START, EVENT_PICKUP, EVENT_PUNCH, EVENT_SHOT, EVENT_WANTED,
@@ -77,6 +86,16 @@ export function createWorld(seed) {
     radio: 'SOLMAR FM 98.5',
     gameOver: null, // 'busted' | 'wasted'
     overTimer: 0,
+    // New gameplay systems: jobs, ranks, weather, races, ambushes, police
+    // escalation, nitro and rotating challenges.
+    jobs: createJobs(),
+    prog: createProgression(),
+    weather: createWeather(),
+    race: createRace(),
+    ambush: createAmbush(),
+    policePlus: createPolicePlus(),
+    vehicles: createVehicles(),
+    challenges: createChallenges(),
   };
 
   function makePlayer(x, y) {
@@ -173,6 +192,14 @@ export function createWorld(seed) {
     state.damageTimer = 0;
     state.gameOver = null;
     state.overTimer = 0;
+    state.jobs = createJobs();
+    state.prog = createProgression();
+    state.weather = createWeather();
+    state.race = createRace();
+    state.ambush = createAmbush();
+    state.policePlus = createPolicePlus();
+    state.vehicles = createVehicles();
+    state.challenges = createChallenges();
     buildCity(ctx);
     for (let i = 0; i < 26; i += 1) spawnTrafficCar(ctx);
     for (let i = 0; i < 34; i += 1) spawnPed(ctx);
@@ -223,6 +250,7 @@ export function createWorld(seed) {
           other.speed *= 0.5;
           addParticles(car.x, car.y, '#ffcc00', 8, 120);
           events |= EVENT_CRASH;
+          recordCrash(state);
           if (other.traffic && other.driver) {
             other.driver = false;
             other.traffic = false;
@@ -295,6 +323,19 @@ export function createWorld(seed) {
 
     if (p.inCar) events |= stepPlayerCar(ctx, dt, c);
     else events |= stepPlayerOnFoot(ctx, dt, c);
+    // Nitro: Shift burns the meter while driving; driving stats follow the car.
+    if (p.inCar) {
+      stepNitro(ctx, dt, !!c.sprint, true);
+      trackDriving(state, p.inCar.speed, dt);
+      for (const other of state.cars) {
+        if (other.traffic) checkNearMiss(state, other, p.inCar.speed);
+      }
+      if (roadblockHit(state)) events |= EVENT_CRASH;
+    } else {
+      stepNitro(ctx, dt, false, false);
+    }
+    // J takes or cancels a courier job (edge-triggered, once per press).
+    if (c.job) events |= handleJobKey(ctx);
     // Services first: pressing E at the Spray Shop resprays the car instead of
     // exiting it (the shop needs the player in the car, the exit would eat the press).
     const serviceEvents = stepServices(ctx, dt, c);
@@ -319,6 +360,15 @@ export function createWorld(seed) {
     events |= stepPickups(ctx, dt);
     events |= stepMission(ctx, dt);
     stepTaxi(dt);
+    // New systems: weather rolls, jobs tick, races and ambushes play out,
+    // the police escalate, and the challenge rotates.
+    const weatherBefore = state.weather ? state.weather.kind : 'clear';
+    stepWeather(ctx, dt);
+    if (state.weather && state.weather.kind !== weatherBefore) events |= EVENT_WEATHER;
+    events |= stepJobs(ctx, dt);
+    events |= stepStreetEvents(ctx, dt);
+    stepPolicePlus(ctx, dt);
+    if (stepChallenges(ctx, dt)) events |= EVENT_CHALLENGE;
 
     // Wanted decay: quiet for a while and no police close by — and never while
     // the helicopter is overhead.
