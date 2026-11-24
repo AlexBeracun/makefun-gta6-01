@@ -112,16 +112,18 @@ export function stepDayNight(ctx) {
   const wasNight = dn.night;
   dn.night = isNightAt(dn.frac);
   const phase = phaseName(dn.frac);
-  if (phase !== dn.phase) {
-    dn.phase = phase;
-    if (dn.night && !wasNight) {
-      dn.nightsSeen += 1;
-      state.toast = 'Night falls over Solmar Bay — the streets light up.';
-      state.toastTimer = 3;
-    } else if (!dn.night && wasNight) {
-      state.toast = `Dawn breaks over Solmar Bay — Day ${dn.day}.`;
-      state.toastTimer = 3;
-    }
+  if (phase !== dn.phase) dn.phase = phase;
+  // The night flag flips at 19:30 / 05:00, which is not a phase boundary
+  // (Dusk ends 19:26, Dawn starts 04:33), so the nightfall/dawn toast has
+  // to fire on the night transition itself — gating it on the phase change
+  // meant it never fired at all, and nightsSeen never counted.
+  if (dn.night && !wasNight) {
+    dn.nightsSeen += 1;
+    state.toast = 'Night falls over Solmar Bay — the streets light up.';
+    state.toastTimer = 3;
+  } else if (!dn.night && wasNight) {
+    state.toast = `Dawn breaks over Solmar Bay — Day ${dn.day}.`;
+    state.toastTimer = 3;
   }
 }
 
