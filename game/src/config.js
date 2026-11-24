@@ -237,6 +237,8 @@ export const CONTROLS = [
   ['Shift', 'Sprint / Nitro boost (in a car)'],
   ['E', 'Enter / steal car, exit car'],
   ['J', 'Take / cancel a courier job (at the depot)'],
+  ['R', 'Change radio station'],
+  ['G', 'Repair the car at the Spray Shop'],
   ['Space', 'Handbrake (car) / punch (on foot)'],
   ['Mouse click', 'Shoot (with pistol)'],
   ['M', 'Mission list'],

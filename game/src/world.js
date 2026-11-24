@@ -33,14 +33,18 @@ import { createRace, createAmbush, stepStreetEvents } from './street-events.js';
 import { createPolicePlus, roadblockHit, stepPolicePlus } from './police-plus.js';
 import { createVehicles, stepNitro } from './vehicles.js';
 import { createChallenges, stepChallenges } from './challenges.js';
+import { createDayNight, stepDayNight } from './daynight.js';
+import { createStreaks, stepStreaks } from './streaks.js';
+import { createRadio, stationName, stepRadio } from './radio.js';
+import { createDamage, stepDamage } from './damage.js';
 import {
   EVENT_BUSTED, EVENT_CHALLENGE, EVENT_CRASH, EVENT_JOB, EVENT_MISSION_DONE, EVENT_MISSION_FAIL,
-  EVENT_RACE, EVENT_WASTED, EVENT_WEATHER,
+  EVENT_RACE, EVENT_RADIO, EVENT_WASTED, EVENT_WEATHER,
 } from './world-events.js';
 
 export {
   EVENT_BUSTED, EVENT_CHALLENGE, EVENT_CRASH, EVENT_JOB, EVENT_MISSION_DONE, EVENT_MISSION_FAIL,
-  EVENT_RACE, EVENT_WASTED, EVENT_WEATHER,
+  EVENT_RACE, EVENT_RADIO, EVENT_WASTED, EVENT_WEATHER,
 } from './world-events.js';
 export {
   EVENT_CASH, EVENT_MISSION_START, EVENT_PICKUP, EVENT_PUNCH, EVENT_SHOT, EVENT_WANTED,
@@ -87,7 +91,8 @@ export function createWorld(seed) {
     gameOver: null, // 'busted' | 'wasted'
     overTimer: 0,
     // New gameplay systems: jobs, ranks, weather, races, ambushes, police
-    // escalation, nitro and rotating challenges.
+    // escalation, nitro and rotating challenges — plus the day/night cycle,
+    // heat streaks, the car radio and car damage with Spray Shop repairs.
     jobs: createJobs(),
     prog: createProgression(),
     weather: createWeather(),
@@ -96,6 +101,10 @@ export function createWorld(seed) {
     policePlus: createPolicePlus(),
     vehicles: createVehicles(),
     challenges: createChallenges(),
+    daynight: createDayNight(),
+    streaks: createStreaks(),
+    radioSys: createRadio(),
+    damage: createDamage(),
   };
 
   function makePlayer(x, y) {
@@ -200,6 +209,11 @@ export function createWorld(seed) {
     state.policePlus = createPolicePlus();
     state.vehicles = createVehicles();
     state.challenges = createChallenges();
+    state.daynight = createDayNight();
+    state.streaks = createStreaks();
+    state.radioSys = createRadio();
+    state.radio = stationName(state.radioSys);
+    state.damage = createDamage();
     buildCity(ctx);
     for (let i = 0; i < 26; i += 1) spawnTrafficCar(ctx);
     for (let i = 0; i < 34; i += 1) spawnPed(ctx);
@@ -318,6 +332,8 @@ export function createWorld(seed) {
     }
     state.elapsed += dt;
     state.clock = (state.clock + dt * (24 / 900)) % 24;
+    // The day/night cycle follows the clock: light, warmth and the day count.
+    stepDayNight(ctx);
     state.damageTimer += dt;
     const p = state.player;
 
@@ -361,7 +377,9 @@ export function createWorld(seed) {
     events |= stepMission(ctx, dt);
     stepTaxi(dt);
     // New systems: weather rolls, jobs tick, races and ambushes play out,
-    // the police escalate, and the challenge rotates.
+    // the police escalate, and the challenge rotates. The radio answers R,
+    // damage follows crashes and scrapes (and G repairs at the Spray Shop),
+    // and clean successes feed the heat streak.
     const weatherBefore = state.weather ? state.weather.kind : 'clear';
     stepWeather(ctx, dt);
     if (state.weather && state.weather.kind !== weatherBefore) events |= EVENT_WEATHER;
@@ -369,6 +387,9 @@ export function createWorld(seed) {
     events |= stepStreetEvents(ctx, dt);
     stepPolicePlus(ctx, dt);
     if (stepChallenges(ctx, dt)) events |= EVENT_CHALLENGE;
+    events |= stepRadio(ctx, c);
+    events |= stepDamage(ctx, dt, c, events);
+    stepStreaks(state, events);
 
     // Wanted decay: quiet for a while and no police close by — and never while
     // the helicopter is overhead.
@@ -398,6 +419,9 @@ export function createWorld(seed) {
         state.wanted = 0;
         state.gameOver = 'busted';
         state.overTimer = 3;
+        // Getting caught ends the heat streak, even if a job finished clean
+        // in this same frame.
+        stepStreaks(state, events | EVENT_BUSTED);
         return events | EVENT_BUSTED;
       }
     } else {
@@ -410,6 +434,8 @@ export function createWorld(seed) {
       state.wanted = 0;
       state.gameOver = 'wasted';
       state.overTimer = 3;
+      // Going down ends the heat streak too.
+      stepStreaks(state, events | EVENT_WASTED);
       return events | EVENT_WASTED;
     }
 

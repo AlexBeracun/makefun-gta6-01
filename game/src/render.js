@@ -12,6 +12,10 @@ import { raceTarget, ambushTarget } from './street-events.js';
 import { currentChallenge, challengeProgress } from './challenges.js';
 import { weatherLabel } from './weather.js';
 import { rankName, rankProgress } from './progression.js';
+import { clockLabel, overlayDarkness } from './daynight.js';
+import { streakLabel, streakSummary } from './streaks.js';
+import { radioPulse, stationColor } from './radio.js';
+import { damageSummary } from './damage.js';
 
 export const SCREEN_TITLE = 'title';
 export const SCREEN_PLAY = 'play';
@@ -68,6 +72,51 @@ export function createRenderer(gameCanvas, hudCanvas) {
   // minimap and menus stay 2D on this canvas, which sits over the WebGL canvas.
   function drawWorld(state, screen) {
     world3d.drawWorld3D(state, screen);
+  }
+
+  // The day/night tint, painted over the 3D world but under the HUD: a dark
+  // blue wash that deepens toward midnight, a warm orange wash at dawn and
+  // dusk, and — at night — a soft pool of light around the player plus a
+  // headlight beam ahead of the car. The HUD itself stays bright.
+  function drawNightTint(state) {
+    const dn = state.daynight;
+    if (!dn) return;
+    const dark = overlayDarkness(dn);
+    if (dark > 0.005) {
+      ctx.fillStyle = `rgba(8,12,40,${dark})`;
+      ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    }
+    if (dn.warm > 0.05) {
+      ctx.fillStyle = `rgba(255,140,60,${(dn.warm * 0.1).toFixed(3)})`;
+      ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    }
+    if (!dn.night) return;
+    const p = state.player;
+    const camX = clamp(state.cam.x - VIEW_W / 2, 0, Math.max(0, WORLD_W - VIEW_W));
+    const camY = clamp(state.cam.y - VIEW_H / 2, 0, Math.max(0, WORLD_H - VIEW_H));
+    const sx = p.x - camX;
+    const sy = p.y - camY;
+    // A soft pool of lamplight around the player.
+    const glow = ctx.createRadialGradient(sx, sy, 10, sx, sy, 280);
+    glow.addColorStop(0, 'rgba(255,220,150,0.12)');
+    glow.addColorStop(1, 'rgba(255,220,150,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(sx - 280, sy - 280, 560, 560);
+    // Headlights: a pale beam ahead of the car.
+    if (p.inCar) {
+      ctx.save();
+      ctx.translate(sx, sy);
+      ctx.rotate(p.angle);
+      ctx.fillStyle = 'rgba(255,240,180,0.10)';
+      ctx.beginPath();
+      ctx.moveTo(10, -14);
+      ctx.lineTo(300, -70);
+      ctx.lineTo(300, 70);
+      ctx.lineTo(10, 14);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
   }
 
   function objectiveTarget(state) {
@@ -143,6 +192,13 @@ export function createRenderer(gameCanvas, hudCanvas) {
       ctx.fill();
       if (state.prog.combo > 1) text(`Combo x${state.prog.combo.toFixed(2)}`, 214, 96, 12, '#7ee787', 'right', 'bold');
     }
+    // Heat streak badge: only once the run is worth bragging about.
+    if (state.streaks && state.streaks.streak >= 2) {
+      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      roundRect(ctx, 14, 122, 285, 30, 10);
+      ctx.fill();
+      text(`🔥 ${streakLabel(state.streaks)}`, 28, 143, 13, '#ff9a4d', 'left', 'bold');
+    }
     // Weather + live challenge, under the wanted box.
     ctx.fillStyle = 'rgba(0,0,0,0.45)';
     roundRect(ctx, VIEW_W - 268, 82, 254, 34, 10);
@@ -160,9 +216,17 @@ export function createRenderer(gameCanvas, hudCanvas) {
     for (let i = 0; i < 5; i += 1) {
       text('★', VIEW_W - 248 + i * 26, 44, 24, i < state.wanted ? '#ffd23e' : 'rgba(255,255,255,0.25)', 'left', 'bold');
     }
-    const hh = Math.floor(state.clock);
-    const mm = Math.floor((state.clock - hh) * 60);
-    text(`${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}  ${state.radio}`, VIEW_W - 28, 66, 13, '#fff', 'right');
+    text(`${clockLabel(state.daynight, state.clock)}  ${state.radio}`, VIEW_W - 28, 66, 13, '#fff', 'right');
+    // The radio beat dot: it throbs on the current station's tempo.
+    if (state.radioSys) {
+      const pulse = radioPulse(state.radioSys, state.elapsed);
+      ctx.fillStyle = stationColor(state.radioSys);
+      ctx.globalAlpha = 0.45 + 0.55 * pulse;
+      ctx.beginPath();
+      ctx.arc(VIEW_W - 26, 28, 3 + pulse * 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
     // Objective banner.
     const target = objectiveTarget(state);
     const missionText = state.mission
@@ -196,6 +260,21 @@ export function createRenderer(gameCanvas, hudCanvas) {
       text(p.inCar.def.name, 158, VIEW_H - 30, 13, '#ccc');
       if (p.inCar.hp < 100) {
         text(`Damage ${Math.max(0, Math.round(p.inCar.hp))}%`, 28, VIEW_H - 14, 11, '#ffb3b3');
+      }
+      // Damage bar: how beaten up this car is, and the repair hint when it smokes.
+      const dmg = p.inCar.damage ?? 0;
+      if (dmg > 0) {
+        if (dmg > 60) text('Smoking! Press G at the Spray Shop to repair', 14, VIEW_H - 108, 12, '#ffb3b3', 'left', 'bold');
+        ctx.fillStyle = 'rgba(0,0,0,0.45)';
+        roundRect(ctx, 14, VIEW_H - 102, 190, 30, 10);
+        ctx.fill();
+        text('DMG', 28, VIEW_H - 82, 11, '#ccc');
+        ctx.fillStyle = '#333';
+        roundRect(ctx, 66, VIEW_H - 90, 112, 10, 5);
+        ctx.fill();
+        ctx.fillStyle = dmg > 60 ? '#d94f4f' : dmg > 30 ? '#e8a33d' : '#4fd07a';
+        roundRect(ctx, 66, VIEW_H - 90, 112 * clamp(dmg / 100, 0, 1), 10, 5);
+        ctx.fill();
       }
       // Nitro meter: hold Shift to burn it.
       if (state.vehicles) {
@@ -426,6 +505,9 @@ export function createRenderer(gameCanvas, hudCanvas) {
         ? `Driven ${Math.round(state.prog.distance).toLocaleString('en-US')}m · Top speed ${Math.round(state.prog.topSpeed * 0.36)} km/h · Crashes ${state.prog.crashes}`
         : '',
       state.jobs ? `Courier runs ${state.jobs.done} · Bounties ${state.jobs.bountiesDone} · Races won ${state.race ? state.race.wins : 0}` : '',
+      state.streaks ? streakSummary(state.streaks) : '',
+      state.daynight ? `${clockLabel(state.daynight, state.clock)} · ${state.daynight.phase} · Radio ${state.radio}` : '',
+      state.damage ? damageSummary(state) : '',
       '',
       ...CONTROLS.map(([k, v]) => `${k} — ${v}`),
     ];
@@ -494,6 +576,7 @@ export function createRenderer(gameCanvas, hudCanvas) {
       return;
     }
     drawWorld(state, screen);
+    drawNightTint(state);
     drawHud(state, screen);
   }
 

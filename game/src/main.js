@@ -3,17 +3,18 @@
 // steps, and the renderer paints what is there. Screens: title, play, missions, paused,
 // busted/wasted, and story complete. Autosaves after every mission.
 //
-// Gameplay systems (10): open-world driving and carjacking; the 5-star wanted
+// Gameplay systems (14): open-world driving and carjacking; the 5-star wanted
 // system with police, foot cops and the helicopter; story missions; courier
 // jobs and vigilante bounties; ranks, XP and mission combos; the weather
 // cycle; chase, tail and survive mission steps; street races and ambushes;
 // police escalation with roadblocks and undercover units; nitro, vehicle
-// handling and rotating street challenges.
+// handling and rotating street challenges; the day/night cycle; heat streaks
+// with clean-run bonuses; the car radio; and car damage with Spray Shop repairs.
 //
 // ?seed=N fixes the city. ?shot=chase|heli|mission|beach (with &seed=N) stages that
 // scene instead of running the loop, paints it twice and sets window.__shotReady.
 import { MISSIONS, SAVE_KEY, SEED, STEP } from './config.js';
-import { createWorld, EVENT_BUSTED, EVENT_CHALLENGE, EVENT_JOB, EVENT_MISSION_DONE, EVENT_MISSION_FAIL, EVENT_RACE, EVENT_WASTED } from './world.js';
+import { createWorld, EVENT_BUSTED, EVENT_CHALLENGE, EVENT_JOB, EVENT_MISSION_DONE, EVENT_MISSION_FAIL, EVENT_RACE, EVENT_RADIO, EVENT_WASTED } from './world.js';
 import { createInput } from './input.js';
 import { createAudio } from './audio.js';
 import {
@@ -112,6 +113,10 @@ function runGame() {
     if (events & (EVENT_JOB | EVENT_RACE | EVENT_CHALLENGE)) {
       audio.event();
     }
+    // Switching radio stations gets its own chirp.
+    if (events & EVENT_RADIO) {
+      audio.radio();
+    }
   }
 
   function buildControl() {
@@ -126,6 +131,8 @@ function runGame() {
       sprint: input.down('shift'),
       enter: input.wasPressed('e'),
       job: input.wasPressed('j'),
+      radio: input.wasPressed('r'),
+      repair: input.wasPressed('g'),
       punch: input.wasPressed(' '),
       brake: input.down(' '),
       shooting,
@@ -188,6 +195,8 @@ function runGame() {
         ctrl.enter = false;
         ctrl.punch = false;
         ctrl.job = false;
+        ctrl.radio = false;
+        ctrl.repair = false;
         if (screen !== SCREEN_PLAY) break;
       }
       // Auto-start the next story mission once the player is settled.

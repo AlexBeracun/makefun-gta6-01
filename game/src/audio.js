@@ -131,6 +131,10 @@ export function createAudio() {
       // Short two-note jingle for jobs, races and challenges.
       [784, 1047].forEach((f, i) => setTimeout(() => tone(f, 0.14, 'triangle', 0.18), i * 120));
     },
+    radio() {
+      // A brighter three-note chirp for switching radio stations.
+      [880, 1109, 1319].forEach((f, i) => setTimeout(() => tone(f, 0.12, 'triangle', 0.16), i * 90));
+    },
     busted() {
       [392, 330, 262, 196].forEach((f, i) => setTimeout(() => tone(f, 0.25, 'sawtooth', 0.12), i * 160));
     },

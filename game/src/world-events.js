@@ -17,3 +17,4 @@ export const EVENT_JOB = 2048;
 export const EVENT_RACE = 4096;
 export const EVENT_CHALLENGE = 8192;
 export const EVENT_WEATHER = 16384;
+export const EVENT_RADIO = 32768;

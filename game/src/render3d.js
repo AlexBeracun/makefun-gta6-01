@@ -400,6 +400,16 @@ export function createWorldRenderer(canvas) {
   heliGroup.visible = false;
   scene.add(heliGroup);
 
+  // Headlight beam for the player's car at night: a pale translucent cone
+  // lying ahead of the car, built the same way as the helicopter's
+  // searchlight cone — a unit cone stretched along the beam each frame.
+  const headlightCone = new THREE.Mesh(
+    new THREE.ConeGeometry(55, 1, 16, 1, true),
+    new THREE.MeshBasicMaterial({ color: 0xffe9a8, transparent: true, opacity: 0.08, side: THREE.DoubleSide, depthWrite: false }),
+  );
+  headlightCone.visible = false;
+  scene.add(headlightCone);
+
   // Service markers: coloured discs with a floating letter sprite.
   function letterSprite(letter, color) {
     const c = document.createElement('canvas');
@@ -590,7 +600,10 @@ export function createWorldRenderer(canvas) {
       scene.fog.near = 1400;
       scene.fog.far = 3200;
     }
-    hemi.intensity = night ? 0.35 : dusk ? 0.8 : 1.0;
+    // The day/night cycle scales the light: full strength at midday, dim
+    // toward midnight, so the 3D scene and the 2D tint agree on the hour.
+    const bright = state.daynight ? state.daynight.brightness : 1;
+    hemi.intensity = (night ? 0.35 : dusk ? 0.8 : 1.0) * (0.65 + 0.35 * bright);
     const sunAngle = ((state.clock - 6) / 12) * Math.PI;
     sun.position.set(
       WORLD_W / 2 + Math.cos(sunAngle) * 2200,
@@ -599,7 +612,7 @@ export function createWorldRenderer(canvas) {
     );
     sun.target.position.set(WORLD_W / 2, 0, WORLD_H / 2);
     sun.color.set(night ? 0x8fa8ff : dusk ? 0xffb36b : 0xfff2d8);
-    sun.intensity = night ? 0.25 : dusk ? 0.9 : 1.6;
+    sun.intensity = (night ? 0.25 : dusk ? 0.9 : 1.6) * (0.6 + 0.4 * bright);
 
     // Cars.
     syncMap(carMeshes, state.cars, makeCarMesh);
@@ -716,6 +729,23 @@ export function createWorldRenderer(canvas) {
       heliSpot.material.opacity = 0.22 + Math.sin(state.elapsed * 3) * 0.06;
     } else {
       heliGroup.visible = false;
+    }
+    // Headlights at night: a pale cone from the player's car forward, apex
+    // at the car and base 320px ahead. Off by day and off on foot.
+    const showLights = state.daynight ? state.daynight.night : night;
+    if (showLights && p.inCar) {
+      const car = p.inCar;
+      const fx = Math.cos(car.angle);
+      const fz = Math.sin(car.angle);
+      const beamLen = 320;
+      headlightCone.visible = true;
+      headlightCone.position.set(car.x + fx * beamLen / 2, 2, car.y + fz * beamLen / 2);
+      headlightCone.scale.set(1, beamLen, 1);
+      headlightCone.quaternion.setFromUnitVectors(
+        new THREE.Vector3(0, 1, 0), new THREE.Vector3(-fx, 0, -fz),
+      );
+    } else {
+      headlightCone.visible = false;
     }
     // Objective beacon.
     const target = objectiveTarget3D(state);
