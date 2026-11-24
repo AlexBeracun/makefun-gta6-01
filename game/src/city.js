@@ -1,3 +1,4 @@
+// SOLMAR HEAT — rewritten via write tool
 // The city itself: the road grid, and one block of buildings, park or palms per
 // block, with a district (downtown towers, industrial sheds, houses, park) picked
 // from where the block sits. buildCity fills state.buildings, state.palms and

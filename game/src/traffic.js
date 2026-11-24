@@ -1,3 +1,4 @@
+// SOLMAR HEAT — rewritten via write tool
 // Traffic: the cars that are not the player's. They cruise the road grid, slow
 // for the car ahead, sometimes turn at an intersection, and wrap around the city
 // edges so the streets never run out. The streets are kept full: whenever the

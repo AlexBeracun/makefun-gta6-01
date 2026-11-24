@@ -1,3 +1,4 @@
+// SOLMAR HEAT — rewritten via write tool
 // The player: on foot (walk, sprint, punch, shoot toward the mouse) and by car
 // (throttle, steering, handbrake), plus getting in and out of cars and the city
 // services — the Spray Shop that clears heat, the Ammo Store and Solmar General.

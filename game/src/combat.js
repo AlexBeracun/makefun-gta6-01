@@ -1,3 +1,4 @@
+// SOLMAR HEAT — rewritten via write tool
 // Combat: bullets in flight. A bullet dies on a building, wounds a cop, a
 // pedestrian or a car when it hits one (the player's shots raise the wanted level),
 // and wounds the player when a cop's shot lands.

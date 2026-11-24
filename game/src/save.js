@@ -1,3 +1,4 @@
+// SOLMAR HEAT — rewritten via write tool
 // The save: one localStorage row with the player's money, ammo, health, mission
 // progress, position, clock and stats. Written after every mission and every 30
 // seconds of play; read back on the title screen so a saved game continues.

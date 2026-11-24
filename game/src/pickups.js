@@ -1,3 +1,4 @@
+// SOLMAR HEAT — rewritten via write tool
 // Street pickups: cash, health and ammo left around the city. Walk or drive over
 // one to collect it; new street cash trickles in while the player roams.
 import { WORLD_H, WORLD_W } from './config.js';

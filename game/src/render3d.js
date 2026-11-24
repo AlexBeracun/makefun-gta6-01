@@ -1,3 +1,4 @@
+// SOLMAR HEAT — rewritten via write tool
 // The world in 3D: Solmar Bay rendered with three.js — a sun-soaked coastal city
 // with glass downtown towers, houses, a beach and ocean, traffic, pedestrians,
 // police chases and the SBP helicopter, all from the same simulation state the

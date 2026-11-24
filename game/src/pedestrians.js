@@ -1,3 +1,4 @@
+// SOLMAR HEAT — rewritten via write tool
 // Pedestrians: they walk the sidewalks between random waypoints, flee from the
 // player and from gunfire, and go down (then get back up) when hit. A pedestrian
 // the player runs over raises the wanted level — the city notices.

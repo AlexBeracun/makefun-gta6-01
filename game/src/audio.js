@@ -1,3 +1,4 @@
+// SOLMAR HEAT — rewritten via write tool
 // Synthesised sound with WebAudio: no audio files, everything is generated.
 // Engine hum, sirens, gunshots, pickups, jingles and a simple bassline radio loop.
 export function createAudio() {

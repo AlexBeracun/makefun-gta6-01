@@ -1,3 +1,4 @@
+// SOLMAR HEAT — rewritten via write tool
 // The event bit flags step() returns, so the caller (sound, toasts) can react
 // without the world knowing about screens. Kept in its own module so the mission
 // and combat modules can use them without importing the whole world.

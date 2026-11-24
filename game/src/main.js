@@ -1,3 +1,4 @@
+// SOLMAR HEAT — rewritten via write tool
 // Boot and the one loop: input is read every frame, the world advances in fixed 1/60 s
 // steps, and the renderer paints what is there. Screens: title, play, missions, paused,
 // busted/wasted, and story complete. Autosaves after every mission.

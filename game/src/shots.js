@@ -1,3 +1,4 @@
+// SOLMAR HEAT — rewritten via write tool
 // The screenshot scenes behind ?shot=chase|heli|mission|beach. Each one plays the
 // real rules forward from a fresh world for a fixed number of steps, steered by a simple
 // autopilot (drive along the road grid toward the objective, walk toward the marker),

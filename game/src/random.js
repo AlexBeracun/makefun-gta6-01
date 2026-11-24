@@ -1,3 +1,4 @@
+// SOLMAR HEAT — rewritten via write tool
 // Seeded RNG (mulberry32) so the city, traffic and screenshots are deterministic.
 export function mulberry32(seed) {
   let a = seed >>> 0;

@@ -1,3 +1,4 @@
+// SOLMAR HEAT — rewritten via write tool
 // Takes the four real screenshots in shots.json: serves game/ on a local port, opens
 // each ?shot= scene in headless Chromium at 1280x720, waits for window.__shotReady, and
 // saves a JPEG (quality 80) into screenshots/. Exits non-zero if any file breaks the

@@ -1,3 +1,4 @@
+// SOLMAR HEAT — rewritten via write tool
 // SOLMAR HEAT — an original open-world crime game set in Solmar Bay.
 // All names, characters, places and story are original. No Rockstar content.
 // config.js: world constants, districts, vehicles, missions, pickups.

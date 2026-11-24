@@ -1,3 +1,4 @@
+// SOLMAR HEAT — rewritten via write tool
 // Story missions: 10 jobs for Mara Solis across Solmar Bay. A mission is a list
 // of steps — steal, goto, pickup, wanted, clear, collect, escape — and stepMission
 // advances them as the player meets each one. Completing a mission pays out, saves

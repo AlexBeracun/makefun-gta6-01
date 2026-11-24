@@ -1,3 +1,4 @@
+// SOLMAR HEAT — rewritten via write tool
 // Interactive playtest (not part of the entry): serves game/, opens it in headless
 // Chromium, and plays it with real keyboard input — start, steal a car, drive,
 // open the mission list — asserting the live state at each step.

@@ -1,3 +1,4 @@
+// SOLMAR HEAT — rewritten via write tool
 // The game's rules and state, with no drawing and no browser in it: the city, the
 // player on foot and by car, traffic, pedestrians, police, the wanted system,
 // missions, combat, pickups and the save. step() advances one fixed step and returns

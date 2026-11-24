@@ -1,3 +1,4 @@
+// SOLMAR HEAT — rewritten via write tool
 // Keyboard + mouse input, with edge-triggered "pressed" keys for actions.
 export function createInput(canvas) {
   const keys = new Set();

@@ -1,3 +1,4 @@
+// SOLMAR HEAT — rewritten via write tool
 // The police: interceptor cars that chase and ram, foot cops that run the player
 // down (and shoot at 3+ stars), and — at 3 stars and up — the SBP helicopter.
 // The helicopter keeps the heat on: while it is overhead the wanted level does not

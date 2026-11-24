@@ -1,3 +1,4 @@
+// SOLMAR HEAT — rewritten via write tool
 // SOLMAR HEAT — a gta6-01 entry (Node 22, standard library only): an original open-world
 // crime game set in Solmar Bay. The game is this directory's game/ folder, plain static files
 // a desktop browser loads offline (game/index.html and its ES modules, plus three.js vendored

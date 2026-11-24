@@ -1,3 +1,4 @@
+// SOLMAR HEAT — rewritten via write tool
 // Drawing only: the world's state and the current screen in, pixels out. The world
 // itself is 3D (render3d.js, a three.js chase-camera view); this file paints the 2D
 // HUD, minimap and menus on a transparent canvas over the WebGL canvas.
